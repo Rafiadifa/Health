@@ -1,0 +1,205 @@
+/* ----------------------------------------------------
+   storage.js
+   localStorage wrapper. Designed so you can swap the
+   implementation for Firebase/Supabase later without
+   touching the rest of the app — keep the same method
+   signatures.
+----------------------------------------------------- */
+
+const Storage = (() => {
+  const KEYS = {
+    food: 'dl_food_v1',
+    weight: 'dl_weight_v1',
+    water: 'dl_water_v1',
+    settings: 'dl_settings_v1',
+  };
+
+  const read = (key, fallback) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      console.warn('storage read failed', e);
+      return fallback;
+    }
+  };
+  const write = (key, val) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+      return true;
+    } catch (e) {
+      // localStorage is full — most likely photos taking space
+      alert('Storage is full. Try removing some old photos or exporting & clearing data.');
+      console.error(e);
+      return false;
+    }
+  };
+
+  // ----- Food -----
+  const getFoodLogs = (dateStr) => {
+    const all = read(KEYS.food, []);
+    return dateStr ? all.filter(e => e.date === dateStr) : all;
+  };
+  const addFoodLog = (entry) => {
+    const all = read(KEYS.food, []);
+    entry.id = entry.id || Date.now();
+    all.push(entry);
+    write(KEYS.food, all);
+    return entry;
+  };
+  const deleteFoodLog = (id) => {
+    const all = read(KEYS.food, []).filter(e => e.id !== id);
+    write(KEYS.food, all);
+  };
+
+  // ----- Weight -----
+  const getWeights = () => {
+    return read(KEYS.weight, []).sort((a, b) => a.date.localeCompare(b.date));
+  };
+  const addWeight = (entry) => {
+    const all = read(KEYS.weight, []);
+    // one entry per date — replace if exists
+    const idx = all.findIndex(e => e.date === entry.date);
+    if (idx >= 0) all[idx] = entry;
+    else all.push(entry);
+    write(KEYS.weight, all);
+    return entry;
+  };
+  const deleteWeight = (date) => {
+    const all = read(KEYS.weight, []).filter(e => e.date !== date);
+    write(KEYS.weight, all);
+  };
+
+  // ----- Water -----
+  const getWater = (dateStr) => {
+    const all = read(KEYS.water, []);
+    return dateStr ? all.filter(e => e.date === dateStr) : all;
+  };
+  const addWater = (amount) => {
+    const all = read(KEYS.water, []);
+    const today = formatDate(new Date());
+    all.push({ id: Date.now(), date: today, amount, time: formatTime(new Date()) });
+    write(KEYS.water, all);
+  };
+  const deleteWater = (id) => {
+    const all = read(KEYS.water, []).filter(e => e.id !== id);
+    write(KEYS.water, all);
+  };
+  const getWaterTotal = (dateStr) => {
+    return getWater(dateStr).reduce((sum, e) => sum + e.amount, 0);
+  };
+  const getWaterByDay = (days) => {
+    // returns array of {date, total} for last N days
+    const result = [];
+    const all = read(KEYS.water, []);
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const ds = formatDate(d);
+      const total = all.filter(e => e.date === ds).reduce((s, e) => s + e.amount, 0);
+      result.push({ date: ds, total });
+    }
+    return result;
+  };
+
+  // ----- Settings -----
+  const getSetting = (key, fallback) => {
+    const s = read(KEYS.settings, {});
+    return s[key] !== undefined ? s[key] : fallback;
+  };
+  const setSetting = (key, value) => {
+    const s = read(KEYS.settings, {});
+    s[key] = value;
+    write(KEYS.settings, s);
+  };
+
+  // ----- Export / Import -----
+  const exportAll = () => {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      food: read(KEYS.food, []),
+      weight: read(KEYS.weight, []),
+      water: read(KEYS.water, []),
+      settings: read(KEYS.settings, {}),
+    };
+  };
+  const importAll = (data, mode = 'replace') => {
+    if (!data || data.version !== 1) throw new Error('Invalid export file');
+    if (mode === 'merge') {
+      // Merge: combine arrays, dedupe by id/date
+      const mergeArr = (existing, incoming, keyFn) => {
+        const map = new Map();
+        [...existing, ...incoming].forEach(e => map.set(keyFn(e), e));
+        return [...map.values()];
+      };
+      write(KEYS.food, mergeArr(read(KEYS.food, []), data.food || [], e => e.id));
+      write(KEYS.weight, mergeArr(read(KEYS.weight, []), data.weight || [], e => e.date));
+      write(KEYS.water, mergeArr(read(KEYS.water, []), data.water || [], e => e.id));
+    } else {
+      write(KEYS.food, data.food || []);
+      write(KEYS.weight, data.weight || []);
+      write(KEYS.water, data.water || []);
+      write(KEYS.settings, data.settings || {});
+    }
+  };
+
+  return {
+    getFoodLogs, addFoodLog, deleteFoodLog,
+    getWeights, addWeight, deleteWeight,
+    getWater, addWater, deleteWater, getWaterTotal, getWaterByDay,
+    getSetting, setSetting,
+    exportAll, importAll,
+  };
+})();
+
+// ----- Date helpers (used everywhere) -----
+function formatDate(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatTime(d) {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+function prettyDate(dateStr) {
+  const today = formatDate(new Date());
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  if (dateStr === today) return 'Today';
+  if (dateStr === formatDate(yest)) return 'Yesterday';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// ----- Image helper: resize & compress to keep storage small -----
+async function compressImage(file, maxSize = 800, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height && width > maxSize) {
+          height = (height * maxSize) / width;
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = (width * maxSize) / height;
+          height = maxSize;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
