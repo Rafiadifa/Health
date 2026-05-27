@@ -5,6 +5,19 @@
 ----------------------------------------------------- */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // ----- Bulletproof modal hide/show (bypasses CSS caching issues) -----
+  // Inline styles always beat external CSS, so we force display directly.
+  document.querySelectorAll('.modal').forEach(modal => {
+    // Force-hide on load no matter what CSS says
+    modal.style.display = 'none';
+    modal.removeAttribute('hidden');
+
+    // Watch for code elsewhere setting .hidden — sync the inline display
+    new MutationObserver(() => {
+      modal.style.display = modal.hasAttribute('hidden') ? 'none' : 'flex';
+    }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+  });
+
   // ----- Tab switching -----
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
