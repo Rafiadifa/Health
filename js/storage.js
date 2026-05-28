@@ -12,6 +12,7 @@ const Storage = (() => {
     weight: 'dl_weight_v1',
     water: 'dl_water_v1',
     settings: 'dl_settings_v1',
+    daily: 'dl_daily_v1',     // per-day summary: burned cal + sport
   };
 
   const read = (key, fallback) => {
@@ -28,7 +29,6 @@ const Storage = (() => {
       localStorage.setItem(key, JSON.stringify(val));
       return true;
     } catch (e) {
-      // localStorage is full — most likely photos taking space
       alert('Storage is full. Try removing some old photos or exporting & clearing data.');
       console.error(e);
       return false;
@@ -51,6 +51,14 @@ const Storage = (() => {
     const all = read(KEYS.food, []).filter(e => e.id !== id);
     write(KEYS.food, all);
   };
+  // Returns { '2026-05-27': totalCal, ... } for the entire month containing `date`
+  const getFoodTotalsByDate = () => {
+    const totals = {};
+    read(KEYS.food, []).forEach(e => {
+      totals[e.date] = (totals[e.date] || 0) + (e.calories || 0);
+    });
+    return totals;
+  };
 
   // ----- Weight -----
   const getWeights = () => {
@@ -58,7 +66,6 @@ const Storage = (() => {
   };
   const addWeight = (entry) => {
     const all = read(KEYS.weight, []);
-    // one entry per date — replace if exists
     const idx = all.findIndex(e => e.date === entry.date);
     if (idx >= 0) all[idx] = entry;
     else all.push(entry);
@@ -75,10 +82,11 @@ const Storage = (() => {
     const all = read(KEYS.water, []);
     return dateStr ? all.filter(e => e.date === dateStr) : all;
   };
-  const addWater = (amount) => {
+  // amount: ml, dateStr: optional, defaults to today
+  const addWater = (amount, dateStr) => {
     const all = read(KEYS.water, []);
-    const today = formatDate(new Date());
-    all.push({ id: Date.now(), date: today, amount, time: formatTime(new Date()) });
+    const date = dateStr || formatDate(new Date());
+    all.push({ id: Date.now(), date, amount, time: formatTime(new Date()) });
     write(KEYS.water, all);
   };
   const deleteWater = (id) => {
@@ -88,18 +96,23 @@ const Storage = (() => {
   const getWaterTotal = (dateStr) => {
     return getWater(dateStr).reduce((sum, e) => sum + e.amount, 0);
   };
-  const getWaterByDay = (days) => {
-    // returns array of {date, total} for last N days
-    const result = [];
-    const all = read(KEYS.water, []);
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const ds = formatDate(d);
-      const total = all.filter(e => e.date === ds).reduce((s, e) => s + e.amount, 0);
-      result.push({ date: ds, total });
-    }
-    return result;
+  const getWaterTotalsByDate = () => {
+    const totals = {};
+    read(KEYS.water, []).forEach(e => {
+      totals[e.date] = (totals[e.date] || 0) + e.amount;
+    });
+    return totals;
+  };
+
+  // ----- Daily summary (burned cals + sport) -----
+  const getDailySummary = (dateStr) => {
+    const all = read(KEYS.daily, {});
+    return all[dateStr] || { caloriesBurned: null, sport: 'none' };
+  };
+  const setDailySummary = (dateStr, patch) => {
+    const all = read(KEYS.daily, {});
+    all[dateStr] = { ...(all[dateStr] || {}), ...patch };
+    write(KEYS.daily, all);
   };
 
   // ----- Settings -----
@@ -116,18 +129,20 @@ const Storage = (() => {
   // ----- Export / Import -----
   const exportAll = () => {
     return {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       food: read(KEYS.food, []),
       weight: read(KEYS.weight, []),
       water: read(KEYS.water, []),
+      daily: read(KEYS.daily, {}),
       settings: read(KEYS.settings, {}),
     };
   };
   const importAll = (data, mode = 'replace') => {
-    if (!data || data.version !== 1) throw new Error('Invalid export file');
+    if (!data || (data.version !== 1 && data.version !== 2)) {
+      throw new Error('Invalid export file');
+    }
     if (mode === 'merge') {
-      // Merge: combine arrays, dedupe by id/date
       const mergeArr = (existing, incoming, keyFn) => {
         const map = new Map();
         [...existing, ...incoming].forEach(e => map.set(keyFn(e), e));
@@ -136,18 +151,23 @@ const Storage = (() => {
       write(KEYS.food, mergeArr(read(KEYS.food, []), data.food || [], e => e.id));
       write(KEYS.weight, mergeArr(read(KEYS.weight, []), data.weight || [], e => e.date));
       write(KEYS.water, mergeArr(read(KEYS.water, []), data.water || [], e => e.id));
+      // daily is an object, merge by key
+      const dailyMerged = { ...read(KEYS.daily, {}), ...(data.daily || {}) };
+      write(KEYS.daily, dailyMerged);
     } else {
       write(KEYS.food, data.food || []);
       write(KEYS.weight, data.weight || []);
       write(KEYS.water, data.water || []);
+      write(KEYS.daily, data.daily || {});
       write(KEYS.settings, data.settings || {});
     }
   };
 
   return {
-    getFoodLogs, addFoodLog, deleteFoodLog,
+    getFoodLogs, addFoodLog, deleteFoodLog, getFoodTotalsByDate,
     getWeights, addWeight, deleteWeight,
-    getWater, addWater, deleteWater, getWaterTotal, getWaterByDay,
+    getWater, addWater, deleteWater, getWaterTotal, getWaterTotalsByDate,
+    getDailySummary, setDailySummary,
     getSetting, setSetting,
     exportAll, importAll,
   };
@@ -172,6 +192,12 @@ function prettyDate(dateStr) {
   if (dateStr === formatDate(yest)) return 'Yesterday';
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function parseDate(dateStr) {
+  return new Date(dateStr + 'T00:00:00');
+}
+function monthLabel(d) {
+  return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
 
 // ----- Image helper: resize & compress to keep storage small -----
