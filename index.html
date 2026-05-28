@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
 </head>
 <body>
   <header class="app-header">
@@ -39,32 +39,78 @@
   </nav>
 
   <main class="app-main">
-    <!-- FOOD TAB -->
+    <!-- ============ FOOD TAB ============ -->
     <section id="tab-food" class="tab-panel active">
-      <div class="date-header">
-        <button id="foodPrevDay" class="day-nav">‹</button>
-        <h2 id="foodDateLabel">Today</h2>
-        <button id="foodNextDay" class="day-nav">›</button>
-      </div>
-
-      <div class="summary-card">
-        <div class="summary-stat">
-          <span class="stat-label">Calories today</span>
-          <span class="stat-value" id="totalCalories">0</span>
-          <span class="stat-unit">kcal</span>
+      <div class="cal-layout">
+        <!-- Calendar side -->
+        <div class="cal-side">
+          <div class="cal-header">
+            <button class="day-nav" id="foodCalPrev">‹</button>
+            <h2 class="cal-month" id="foodCalMonth">—</h2>
+            <button class="day-nav" id="foodCalNext">›</button>
+          </div>
+          <div class="cal-weekdays">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+          </div>
+          <div class="cal-grid" id="foodCalGrid"></div>
+          <div class="cal-legend">
+            <span class="legend-item"><span class="legend-dot dot-low"></span>&lt;1500</span>
+            <span class="legend-item"><span class="legend-dot dot-mid"></span>1500–2500</span>
+            <span class="legend-item"><span class="legend-dot dot-high"></span>&gt;2500</span>
+          </div>
         </div>
-        <div class="summary-stat">
-          <span class="stat-label">Items</span>
-          <span class="stat-value" id="totalItems">0</span>
+
+        <!-- Day detail side -->
+        <div class="day-side">
+          <h2 class="day-title" id="foodDateLabel">Today</h2>
+
+          <div class="net-card">
+            <div class="net-stat">
+              <span class="net-label">Eaten</span>
+              <span class="net-value" id="totalCalories">0</span>
+              <span class="net-unit">in</span>
+            </div>
+            <div class="net-divider">−</div>
+            <div class="net-stat">
+              <span class="net-label">Burned</span>
+              <span class="net-value" id="caloriesBurned">—</span>
+              <span class="net-unit">out</span>
+            </div>
+            <div class="net-divider">=</div>
+            <div class="net-stat result">
+              <span class="net-label">Net</span>
+              <span class="net-value" id="caloriesNet">—</span>
+              <span class="net-unit">kcal</span>
+            </div>
+          </div>
+
+          <div class="day-controls">
+            <label class="control-field">
+              <span>Burned today (from watch)</span>
+              <div class="input-row">
+                <input type="number" id="burnedInput" placeholder="e.g. 2100" step="10" />
+                <span class="unit-suffix">kcal</span>
+              </div>
+            </label>
+            <label class="control-field">
+              <span>Sport / Activity</span>
+              <select id="sportSelect">
+                <option value="none">None — rest day</option>
+                <option value="light">Light — walking, casual</option>
+                <option value="moderate">Moderate — gym, dance, jog</option>
+                <option value="intense">Intense — heavy training</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="section-title">
+            <h3>Log</h3>
+            <button id="addFoodBtn" class="primary-btn">+ Add food</button>
+          </div>
+
+          <div id="foodList" class="log-list"></div>
         </div>
       </div>
-
-      <div class="section-title">
-        <h3>Log</h3>
-        <button id="addFoodBtn" class="primary-btn">+ Add food</button>
-      </div>
-
-      <div id="foodList" class="log-list"></div>
 
       <!-- Add Food Modal -->
       <div id="foodModal" class="modal" hidden>
@@ -183,7 +229,7 @@
       </div>
     </section>
 
-    <!-- WEIGHT TAB -->
+    <!-- ============ WEIGHT TAB ============ -->
     <section id="tab-weight" class="tab-panel">
       <div class="summary-card">
         <div class="summary-stat">
@@ -223,7 +269,7 @@
       <div id="weightModal" class="modal" hidden>
         <div class="modal-content">
           <div class="modal-header">
-            <h3>Log weight & body data</h3>
+            <h3>Log weight &amp; body data</h3>
             <button class="close-btn" data-close="weightModal">✕</button>
           </div>
           <div class="modal-body">
@@ -268,58 +314,76 @@
       </div>
     </section>
 
-    <!-- WATER TAB -->
+    <!-- ============ WATER TAB ============ -->
     <section id="tab-water" class="tab-panel">
-      <div class="summary-card water-card">
-        <div class="summary-stat">
-          <span class="stat-label">Today</span>
-          <span class="stat-value" id="waterToday">0</span>
-          <span class="stat-unit">ml</span>
+      <div class="cal-layout">
+        <!-- Calendar side -->
+        <div class="cal-side">
+          <div class="cal-header">
+            <button class="day-nav" id="waterCalPrev">‹</button>
+            <h2 class="cal-month" id="waterCalMonth">—</h2>
+            <button class="day-nav" id="waterCalNext">›</button>
+          </div>
+          <div class="cal-weekdays">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+          </div>
+          <div class="cal-grid" id="waterCalGrid"></div>
+          <div class="cal-legend">
+            <span class="legend-item"><span class="legend-dot dot-water-low"></span>&lt;1500ml</span>
+            <span class="legend-item"><span class="legend-dot dot-water-mid"></span>1500–2500</span>
+            <span class="legend-item"><span class="legend-dot dot-water-high"></span>&gt;goal</span>
+          </div>
         </div>
-        <div class="water-goal-row">
-          <span>Goal: <strong id="waterGoal">2500</strong> ml</span>
-          <button id="editGoalBtn" class="text-btn">edit</button>
+
+        <!-- Day detail side -->
+        <div class="day-side">
+          <h2 class="day-title" id="waterDateLabel">Today</h2>
+
+          <div class="summary-card water-card">
+            <div class="summary-stat">
+              <span class="stat-label">Total</span>
+              <span class="stat-value" id="waterToday">0</span>
+              <span class="stat-unit">ml</span>
+            </div>
+            <div class="water-goal-row">
+              <span>Goal: <strong id="waterGoal">2500</strong> ml</span>
+              <button id="editGoalBtn" class="text-btn">edit</button>
+            </div>
+            <div class="water-progress">
+              <div class="water-progress-fill" id="waterFill"></div>
+            </div>
+            <div class="water-percent" id="waterPercent">0%</div>
+          </div>
+
+          <div class="section-title"><h3>Quick add</h3></div>
+          <div class="quick-add-grid">
+            <button class="quick-btn" data-amount="150">+150ml<small>cup</small></button>
+            <button class="quick-btn" data-amount="250">+250ml<small>glass</small></button>
+            <button class="quick-btn" data-amount="500">+500ml<small>bottle</small></button>
+            <button class="quick-btn" data-amount="750">+750ml<small>big bottle</small></button>
+          </div>
+
+          <div class="custom-add">
+            <input type="number" id="customWater" placeholder="custom ml" step="50" />
+            <button id="addCustomWaterBtn" class="primary-btn">Add</button>
+          </div>
+
+          <div class="section-title"><h3>Day's log</h3></div>
+          <div id="waterList" class="log-list"></div>
         </div>
-        <div class="water-progress">
-          <div class="water-progress-fill" id="waterFill"></div>
-        </div>
-        <div class="water-percent" id="waterPercent">0%</div>
       </div>
-
-      <div class="section-title"><h3>Quick add</h3></div>
-      <div class="quick-add-grid">
-        <button class="quick-btn" data-amount="150">+150ml<small>cup</small></button>
-        <button class="quick-btn" data-amount="250">+250ml<small>glass</small></button>
-        <button class="quick-btn" data-amount="500">+500ml<small>bottle</small></button>
-        <button class="quick-btn" data-amount="750">+750ml<small>big bottle</small></button>
-      </div>
-
-      <div class="custom-add">
-        <input type="number" id="customWater" placeholder="custom ml" step="50" />
-        <button id="addCustomWaterBtn" class="primary-btn">Add</button>
-      </div>
-
-      <div class="section-title">
-        <h3>Last 7 days</h3>
-      </div>
-      <div class="chart-wrap small">
-        <canvas id="waterChart"></canvas>
-      </div>
-
-      <div class="section-title"><h3>Today's log</h3></div>
-      <div id="waterList" class="log-list"></div>
     </section>
   </main>
 
-  <!-- Chart.js -->
+  <!-- Chart.js (used by weight tab) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <!-- App modules (order matters) -->
-  <script src="js/storage.js"></script>
-  <script src="js/calories.js"></script>
-  <script src="js/food-log.js"></script>
-  <script src="js/weight.js"></script>
-  <script src="js/water.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/storage.js?v=4"></script>
+  <script src="js/calories.js?v=4"></script>
+  <script src="js/food-log.js?v=4"></script>
+  <script src="js/weight.js?v=4"></script>
+  <script src="js/water.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
