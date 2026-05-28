@@ -424,6 +424,7 @@ body::before {
   justify-content: center;
   animation: fadeIn 0.2s ease;
 }
+.modal[hidden] { display: none !important; }
 @media (min-width: 600px) {
   .modal { align-items: center; }
 }
@@ -673,4 +674,301 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 380px) {
   .stat-value { font-size: 30px; }
   .app-header h1 { font-size: 22px; }
+}
+
+/* ====================================================
+   v4 additions: Calendar layout, day detail, net card
+==================================================== */
+
+/* Wider container on desktop to accommodate side-by-side */
+@media (min-width: 800px) {
+  .app-main { max-width: 960px; }
+}
+
+/* ---------- Layout: calendar + day detail ---------- */
+.cal-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 800px) {
+  .cal-layout {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+/* ---------- Calendar ---------- */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+.cal-month {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+  margin: 0;
+  letter-spacing: -0.01em;
+  font-style: italic;
+}
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+.cal-weekdays span {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-cell {
+  aspect-ratio: 1 / 1.1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 5px;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: transform 0.1s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.cal-cell:hover {
+  border-color: var(--accent);
+}
+.cal-cell:active { transform: scale(0.96); }
+
+.cal-cell .day-num {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.cal-cell .day-val {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-cell.off-month {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+.cal-cell.off-month .day-num {
+  color: var(--ink-faint);
+  opacity: 0.5;
+}
+.cal-cell.off-month:hover { border-color: transparent; }
+
+.cal-cell.today { border-color: var(--ink); border-width: 1.5px; }
+.cal-cell.today .day-num { color: var(--ink); font-weight: 600; }
+
+.cal-cell.selected {
+  border-color: var(--accent) !important;
+  border-width: 2px;
+  background: var(--accent-soft);
+  padding: 3px 4px;
+}
+.cal-cell.selected .day-num { color: var(--accent-deep); font-weight: 600; }
+.cal-cell.selected .day-val { color: var(--accent-deep); }
+
+/* Calorie intensity tiers */
+.cal-cell.tier-low { background: #fbf3e8; }
+.cal-cell.tier-mid { background: #f5e1cc; }
+.cal-cell.tier-high { background: #e9c4a8; }
+
+/* Water intensity tiers */
+.cal-cell.tier-water-low { background: #eaf3f9; }
+.cal-cell.tier-water-mid { background: #cfe3ee; }
+.cal-cell.tier-water-high { background: #b3d4e5; }
+
+/* Dot indicator for activity day */
+.cal-cell .activity-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+/* ---------- Calendar legend ---------- */
+.cal-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 0 2px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+}
+.dot-low { background: #fbf3e8; }
+.dot-mid { background: #f5e1cc; }
+.dot-high { background: #e9c4a8; }
+.dot-water-low { background: #eaf3f9; }
+.dot-water-mid { background: #cfe3ee; }
+.dot-water-high { background: #b3d4e5; }
+
+/* ---------- Day detail side ---------- */
+.day-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px 2px;
+}
+
+/* ---------- Net calorie card ---------- */
+.net-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+.net-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.net-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.net-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.net-stat.result .net-value { color: var(--accent-deep); }
+.net-unit {
+  font-size: 10px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+}
+.net-divider {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink-faint);
+  padding: 0 2px;
+}
+
+/* Net result coloring */
+.net-stat.result .net-value.positive { color: var(--danger); }
+.net-stat.result .net-value.negative { color: var(--success); }
+
+/* ---------- Day controls (burned + sport) ---------- */
+.day-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+@media (min-width: 500px) {
+  .day-controls { grid-template-columns: 1fr 1fr; }
+}
+.control-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.control-field > span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.control-field input,
+.control-field select {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+}
+.control-field input:focus,
+.control-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.input-row input { flex: 1; }
+.unit-suffix {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* Mobile: compact net card */
+@media (max-width: 420px) {
+  .net-card { padding: 12px 10px; gap: 4px; }
+  .net-value { font-size: 22px; }
+  .net-divider { font-size: 14px; }
 }
