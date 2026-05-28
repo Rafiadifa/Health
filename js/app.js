@@ -6,16 +6,18 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // ----- Bulletproof modal hide/show (bypasses CSS caching issues) -----
-  // Inline styles always beat external CSS, so we force display directly.
+  // Inline styles always beat external CSS, so we drive display directly
+  // from the `hidden` attribute. We do NOT remove the attribute, otherwise
+  // setting `.hidden = false` later becomes a no-op and the modal won't open.
   document.querySelectorAll('.modal').forEach(modal => {
-    // Force-hide on load no matter what CSS says
-    modal.style.display = 'none';
-    modal.removeAttribute('hidden');
-
-    // Watch for code elsewhere setting .hidden — sync the inline display
-    new MutationObserver(() => {
+    const sync = () => {
       modal.style.display = modal.hasAttribute('hidden') ? 'none' : 'flex';
-    }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+    };
+    sync(); // set initial state from the HTML `hidden` attribute
+    new MutationObserver(sync).observe(modal, {
+      attributes: true,
+      attributeFilter: ['hidden'],
+    });
   });
 
   // ----- Tab switching -----
