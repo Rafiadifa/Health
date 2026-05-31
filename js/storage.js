@@ -47,10 +47,23 @@ const Storage = (() => {
     write(KEYS.food, all);
     return entry;
   };
+  // Upsert: if entry.id matches an existing record, replace it; else add.
+  const saveFoodLog = (entry) => {
+    const all = read(KEYS.food, []);
+    if (entry.id) {
+      const idx = all.findIndex(e => e.id === entry.id);
+      if (idx >= 0) { all[idx] = entry; write(KEYS.food, all); return entry; }
+    }
+    entry.id = entry.id || Date.now();
+    all.push(entry);
+    write(KEYS.food, all);
+    return entry;
+  };
   const deleteFoodLog = (id) => {
     const all = read(KEYS.food, []).filter(e => e.id !== id);
     write(KEYS.food, all);
   };
+  const getFoodLogById = (id) => read(KEYS.food, []).find(e => e.id === id) || null;
   // Returns { '2026-05-27': totalCal, ... } for the entire month containing `date`
   const getFoodTotalsByDate = () => {
     const totals = {};
@@ -126,6 +139,31 @@ const Storage = (() => {
     write(KEYS.settings, s);
   };
 
+  // ----- Profile (body data for targets) -----
+  const DEFAULT_PROFILE = {
+    height: 169, age: 20, sex: 'male',
+    activity: 'moderate', goal: 'maintain',
+    weight: 68, // fallback only; real weight comes from latest weight log
+  };
+  const getProfile = () => {
+    const p = read(KEYS.settings, {}).profile || {};
+    return { ...DEFAULT_PROFILE, ...p };
+  };
+  const setProfile = (patch) => {
+    const s = read(KEYS.settings, {});
+    s.profile = { ...DEFAULT_PROFILE, ...(s.profile || {}), ...patch };
+    write(KEYS.settings, s);
+  };
+  // Latest logged weight, or profile fallback
+  const getEffectiveWeight = () => {
+    const weights = read(KEYS.weight, []);
+    if (weights.length) {
+      const latest = weights.slice().sort((a, b) => a.date.localeCompare(b.date)).pop();
+      if (latest && latest.weight) return latest.weight;
+    }
+    return getProfile().weight;
+  };
+
   // ----- Export / Import -----
   const exportAll = () => {
     return {
@@ -164,11 +202,12 @@ const Storage = (() => {
   };
 
   return {
-    getFoodLogs, addFoodLog, deleteFoodLog, getFoodTotalsByDate,
+    getFoodLogs, addFoodLog, saveFoodLog, deleteFoodLog, getFoodLogById, getFoodTotalsByDate,
     getWeights, addWeight, deleteWeight,
     getWater, addWater, deleteWater, getWaterTotal, getWaterTotalsByDate,
     getDailySummary, setDailySummary,
     getSetting, setSetting,
+    getProfile, setProfile, getEffectiveWeight,
     exportAll, importAll,
   };
 })();
