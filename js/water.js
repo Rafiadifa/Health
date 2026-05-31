@@ -10,6 +10,13 @@ const WaterTab = (() => {
   let viewMonth = new Date();
   const $ = (id) => document.getElementById(id);
 
+  // Manual override if set, otherwise computed from body weight (~35 ml/kg)
+  function waterGoal() {
+    const manual = Storage.getSetting('waterGoal', null);
+    if (manual) return manual;
+    return Calories.waterTarget(Storage.getEffectiveWeight());
+  }
+
   function init() {
     $('waterCalPrev').addEventListener('click', () => shiftMonth(-1));
     $('waterCalNext').addEventListener('click', () => shiftMonth(1));
@@ -31,7 +38,7 @@ const WaterTab = (() => {
     });
 
     $('editGoalBtn').addEventListener('click', () => {
-      const current = Storage.getSetting('waterGoal', 2500);
+      const current = waterGoal();
       const n = prompt('Daily water goal (ml):', current);
       if (n && !isNaN(parseInt(n))) {
         Storage.setSetting('waterGoal', parseInt(n));
@@ -61,7 +68,7 @@ const WaterTab = (() => {
     const lastDay = new Date(year, month + 1, 0);
     const firstWeekday = (firstDay.getDay() + 6) % 7;
     const daysInMonth = lastDay.getDate();
-    const goal = Storage.getSetting('waterGoal', 2500);
+    const goal = waterGoal();
 
     $('waterCalMonth').textContent = monthLabel(viewMonth);
 
@@ -115,7 +122,7 @@ const WaterTab = (() => {
     $('waterDateLabel').textContent = prettyDate(selectedDate);
 
     const total = Storage.getWaterTotal(selectedDate);
-    const goal = Storage.getSetting('waterGoal', 2500);
+    const goal = waterGoal();
     const pct = Math.min(100, Math.round((total / goal) * 100));
 
     $('waterToday').textContent = total;
