@@ -1224,3 +1224,262 @@ input[type="range"]::-moz-range-thumb {
 }
 .target-preview > div.highlight span { color: var(--accent-deep); font-weight: 500; }
 .target-preview > div.highlight strong { color: var(--accent-deep); }
+
+/* ====================================================
+   v7 additions: water ring, fasting, favorites, week
+   summary, backup banner, profile extras, metric toggle
+==================================================== */
+
+/* ---------- Metric toggle (weight tab) ---------- */
+.metric-btn {
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: inherit;
+}
+.metric-btn.active {
+  background: var(--bg-card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Backup banner ---------- */
+.backup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 var(--pad) 4px;
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  border: 1px solid #e7cbb9;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--accent-deep);
+  position: relative;
+  z-index: 1;
+}
+.backup-banner[hidden] { display: none !important; }
+.backup-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.icon-btn.small { width: 26px; height: 26px; font-size: 13px; }
+
+/* ---------- Weekly summary ---------- */
+.week-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+}
+.week-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .week-grid { grid-template-columns: repeat(3, 1fr); gap: 14px 8px; }
+}
+.week-stat { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.week-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.week-lbl {
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+/* ---------- Fasting widget ---------- */
+.fasting-widget { margin-bottom: 18px; }
+.fasting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-card);
+}
+.fasting-row.open { background: #eef3ea; border-color: #cdd9c2; }
+.fasting-row.fasting { background: #ece8f0; border-color: #d5cce0; }
+.fasting-icon { font-size: 22px; line-height: 1; }
+.fasting-status { font-weight: 600; font-size: 14px; color: var(--ink); }
+.fasting-window { font-size: 12px; color: var(--ink-soft); font-family: var(--font-mono); margin-top: 1px; }
+.fasting-off {
+  font-size: 13px;
+  color: var(--ink-faint);
+  padding: 10px 14px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+/* ---------- Water module ---------- */
+.water-module {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 10px;
+}
+@media (max-width: 420px) {
+  .water-module { flex-direction: column; }
+}
+.water-ring-wrap { position: relative; width: 104px; height: 104px; flex-shrink: 0; }
+.water-ring { width: 104px; height: 104px; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--bg-soft); stroke-width: 8; }
+.ring-progress {
+  fill: none;
+  stroke: var(--water);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.water-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.water-ring-center span {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--water);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.water-ring-center small { font-size: 10px; color: var(--ink-faint); font-family: var(--font-mono); margin-top: 2px; }
+.water-controls { flex: 1; display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.water-quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.water-quick {
+  background: var(--water-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--water);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: all 0.15s;
+}
+.water-quick small { font-family: var(--font-body); font-size: 9px; color: var(--ink-faint); font-weight: 400; }
+.water-quick:hover { border-color: var(--water); transform: translateY(-1px); }
+.water-quick:active { transform: scale(0.96); }
+.water-goal-line { text-align: right; }
+
+.water-log { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.water-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 6px 4px 11px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--water);
+}
+.water-chip small { color: var(--ink-faint); font-size: 11px; }
+.wlog-del {
+  background: none; border: none; color: var(--ink-faint);
+  font-size: 15px; cursor: pointer; line-height: 1; padding: 0 2px;
+}
+.wlog-del:hover { color: var(--danger); }
+.empty-state.small { padding: 10px; font-size: 12px; }
+
+/* ---------- Favorites row ---------- */
+.favorites-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.favorites-row.empty { display: none; }
+.fav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 7px 8px 7px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.fav-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+.fav-chip:active { transform: scale(0.97); }
+.fav-name { font-size: 13px; font-weight: 500; color: var(--accent-deep); }
+.fav-cal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(255,255,255,0.5);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.fav-del {
+  background: none; border: none; color: var(--accent);
+  font-size: 15px; cursor: pointer; line-height: 1; padding: 0 2px; opacity: 0.6;
+}
+.fav-del:hover { opacity: 1; color: var(--danger); }
+
+/* ---------- Log item actions (edit/fav/delete) ---------- */
+.log-actions { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.log-fav {
+  background: none; border: none; color: var(--ink-faint);
+  font-size: 16px; cursor: pointer; line-height: 1; padding: 2px 6px;
+}
+.log-fav:hover { color: var(--accent); }
+
+/* Static activity dot in legend */
+.activity-dot.static { position: static; display: inline-block; width: 6px; height: 6px; }
+
+/* ---------- Profile extras: divider, checkbox, rows ---------- */
+.divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 20px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.checkbox-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.checkbox-field input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.checkbox-field span { margin: 0; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); }
+.field-row { display: flex; gap: 10px; }
+.field-row .grow { flex: 1; }
