@@ -1,23 +1,19 @@
 /* ----------------------------------------------------
-   app.js
-   Main coordinator: tab switching, modal close,
-   export/import, init everything.
+   app.js — coordinator
+   Tabs (Day / Weight), modals, profile + eating window,
+   export/import, backup nudge, service-worker registration.
 ----------------------------------------------------- */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ----- Bulletproof modal hide/show (bypasses CSS caching issues) -----
-  // Inline styles always beat external CSS, so we drive display directly
-  // from the `hidden` attribute. We do NOT remove the attribute, otherwise
-  // setting `.hidden = false` later becomes a no-op and the modal won't open.
+  const $ = (id) => document.getElementById(id);
+
+  // ----- Modal hide/show driven by the `hidden` attribute -----
+  // Inline display always beats external CSS (cache-proof). We keep the
+  // attribute intact so `.hidden = false` keeps firing the observer.
   document.querySelectorAll('.modal').forEach(modal => {
-    const sync = () => {
-      modal.style.display = modal.hasAttribute('hidden') ? 'none' : 'flex';
-    };
-    sync(); // set initial state from the HTML `hidden` attribute
-    new MutationObserver(sync).observe(modal, {
-      attributes: true,
-      attributeFilter: ['hidden'],
-    });
+    const sync = () => { modal.style.display = modal.hasAttribute('hidden') ? 'none' : 'flex'; };
+    sync();
+    new MutationObserver(sync).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
   });
 
   // ----- Tab switching -----
@@ -27,30 +23,22 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('tab-' + target).classList.add('active');
-
-      // re-render the tab being shown (so charts size correctly)
-      if (target === 'food') FoodLog.render();
+      $('tab-' + target).classList.add('active');
+      if (target === 'day') Day.render();
       if (target === 'weight') WeightTab.render();
-      if (target === 'water') WaterTab.render();
     });
   });
 
-  // ----- Modal close buttons -----
+  // ----- Modal close (buttons + backdrop) -----
   document.querySelectorAll('[data-close]').forEach(el => {
-    el.addEventListener('click', () => {
-      document.getElementById(el.dataset.close).hidden = true;
-    });
+    el.addEventListener('click', () => { $(el.dataset.close).hidden = true; });
   });
-  // close modal on backdrop click
   document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.hidden = true;
-    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
   });
 
-  // ----- Export -----
-  document.getElementById('exportBtn').addEventListener('click', () => {
+  // ----- Export / backup -----
+  function doExport() {
     const data = Storage.exportAll();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -61,32 +49,29 @@ document.addEventListener('DOMContentLoaded', () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  });
+    Storage.setSetting('lastBackup', new Date().toISOString());
+    refreshBackupBanner();
+  }
+  $('exportBtn').addEventListener('click', doExport);
 
   // ----- Import -----
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFile').click();
-  });
-  document.getElementById('importFile').addEventListener('change', async (e) => {
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
+      const data = JSON.parse(await file.text());
       const mode = confirm(
-        'Import data?\n\n' +
-        'OK = MERGE with existing data (keeps both)\n' +
-        'Cancel = REPLACE all existing data (wipes current)'
+        'Import data?\n\nOK = MERGE with existing data (keeps both)\nCancel = REPLACE all existing data (wipes current)'
       ) ? 'merge' : 'replace';
       if (mode === 'replace' && !confirm('Really replace all existing data? This cannot be undone.')) {
-        e.target.value = '';
-        return;
+        e.target.value = ''; return;
       }
       Storage.importAll(data, mode);
       alert('Import complete!');
-      FoodLog.render();
+      Day.render();
       WeightTab.render();
-      WaterTab.render();
+      refreshBackupBanner();
     } catch (err) {
       console.error(err);
       alert('Invalid file: ' + err.message);
@@ -94,7 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = '';
   });
 
-  // ----- Profile modal -----
+  // ----- Backup nudge banner -----
+  function refreshBackupBanner() {
+    const banner = $('backupBanner');
+    if (!banner) return;
+    if (sessionStorage.getItem('backupDismissed')) { banner.hidden = true; return; }
+    const hasData = Storage.getFoodLogs().length || Storage.getWeights().length || Storage.getWater().length;
+    if (!hasData) { banner.hidden = true; return; }
+    const last = Storage.getSetting('lastBackup', null);
+    let overdue = false, txt = '';
+    if (!last) {
+      overdue = true;
+      txt = "You haven't backed up yet — export a copy so a cache-clear can't wipe your data.";
+    } else {
+      const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+      if (days >= 7) { overdue = true; txt = `Last backup was ${days} days ago — worth exporting again.`; }
+    }
+    banner.hidden = !overdue;
+    if (overdue) $('backupText').textContent = txt;
+  }
+  $('backupNowBtn').addEventListener('click', doExport);
+  $('backupDismiss').addEventListener('click', () => {
+    sessionStorage.setItem('backupDismissed', '1');
+    $('backupBanner').hidden = true;
+  });
+
+  // ----- Profile modal (incl. eating window) -----
   const pf = (id) => document.getElementById(id);
   function loadProfileForm() {
     const p = Storage.getProfile();
@@ -103,6 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
     pf('pfSex').value = p.sex;
     pf('pfActivity').value = p.activity;
     pf('pfGoal').value = p.goal;
+    const w = Storage.getSetting('eatingWindow', { enabled: false, start: '06:30', end: '14:30' });
+    pf('pfFastEnabled').checked = !!w.enabled;
+    pf('pfFastStart').value = w.start || '06:30';
+    pf('pfFastEnd').value = w.end || '14:30';
     updateProfilePreview();
   }
   function readProfileForm() {
@@ -115,31 +129,37 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
   function updateProfilePreview() {
-    const form = readProfileForm();
     const weight = Storage.getEffectiveWeight();
-    const p = { ...form, weight };
+    const p = { ...readProfileForm(), weight };
     pf('pfBmr').textContent = Calories.bmr(p) + ' kcal';
     pf('pfTdee').textContent = Calories.tdee(p) + ' kcal';
     pf('pfTarget').textContent = Calories.calorieTarget(p) + ' kcal';
     pf('pfWater').textContent = Calories.waterTarget(weight) + ' ml';
   }
-  pf('profileBtn').addEventListener('click', () => {
-    loadProfileForm();
-    pf('profileModal').hidden = false;
-  });
+  pf('profileBtn').addEventListener('click', () => { loadProfileForm(); pf('profileModal').hidden = false; });
   ['pfHeight','pfAge','pfSex','pfActivity','pfGoal'].forEach(id => {
     pf(id).addEventListener('input', updateProfilePreview);
     pf(id).addEventListener('change', updateProfilePreview);
   });
   pf('saveProfileBtn').addEventListener('click', () => {
     Storage.setProfile(readProfileForm());
+    Storage.setSetting('eatingWindow', {
+      enabled: pf('pfFastEnabled').checked,
+      start: pf('pfFastStart').value || '06:30',
+      end: pf('pfFastEnd').value || '14:30',
+    });
     pf('profileModal').hidden = true;
-    FoodLog.render();
-    WaterTab.render();
+    Day.render();
+    WeightTab.render();
   });
 
-  // ----- Init each module -----
-  FoodLog.init();
+  // ----- Init modules -----
+  Day.init();
   WeightTab.init();
-  WaterTab.init();
+  refreshBackupBanner();
+
+  // ----- PWA service worker -----
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registration failed', err));
+  }
 });
