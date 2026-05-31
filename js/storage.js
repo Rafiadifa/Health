@@ -12,7 +12,8 @@ const Storage = (() => {
     weight: 'dl_weight_v1',
     water: 'dl_water_v1',
     settings: 'dl_settings_v1',
-    daily: 'dl_daily_v1',     // per-day summary: burned cal + sport
+    daily: 'dl_daily_v1',     // per-day summary: burned cal + sport + note
+    favorites: 'dl_favorites_v1',
   };
 
   const read = (key, fallback) => {
@@ -164,20 +165,34 @@ const Storage = (() => {
     return getProfile().weight;
   };
 
+  // ----- Favorites (saved meals) -----
+  const getFavorites = () => read(KEYS.favorites, []);
+  const addFavorite = (fav) => {
+    const all = read(KEYS.favorites, []);
+    fav.id = fav.id || Date.now();
+    // avoid exact-name duplicates
+    if (!all.some(f => f.name === fav.name)) { all.push(fav); write(KEYS.favorites, all); }
+    return fav;
+  };
+  const deleteFavorite = (id) => {
+    write(KEYS.favorites, read(KEYS.favorites, []).filter(f => f.id !== id));
+  };
+
   // ----- Export / Import -----
   const exportAll = () => {
     return {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       food: read(KEYS.food, []),
       weight: read(KEYS.weight, []),
       water: read(KEYS.water, []),
       daily: read(KEYS.daily, {}),
+      favorites: read(KEYS.favorites, []),
       settings: read(KEYS.settings, {}),
     };
   };
   const importAll = (data, mode = 'replace') => {
-    if (!data || (data.version !== 1 && data.version !== 2)) {
+    if (!data || ![1, 2, 3].includes(data.version)) {
       throw new Error('Invalid export file');
     }
     if (mode === 'merge') {
@@ -192,11 +207,13 @@ const Storage = (() => {
       // daily is an object, merge by key
       const dailyMerged = { ...read(KEYS.daily, {}), ...(data.daily || {}) };
       write(KEYS.daily, dailyMerged);
+      write(KEYS.favorites, mergeArr(read(KEYS.favorites, []), data.favorites || [], e => e.id));
     } else {
       write(KEYS.food, data.food || []);
       write(KEYS.weight, data.weight || []);
       write(KEYS.water, data.water || []);
       write(KEYS.daily, data.daily || {});
+      write(KEYS.favorites, data.favorites || []);
       write(KEYS.settings, data.settings || {});
     }
   };
@@ -208,6 +225,7 @@ const Storage = (() => {
     getDailySummary, setDailySummary,
     getSetting, setSetting,
     getProfile, setProfile, getEffectiveWeight,
+    getFavorites, addFavorite, deleteFavorite,
     exportAll, importAll,
   };
 })();
