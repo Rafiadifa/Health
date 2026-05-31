@@ -94,6 +94,50 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = '';
   });
 
+  // ----- Profile modal -----
+  const pf = (id) => document.getElementById(id);
+  function loadProfileForm() {
+    const p = Storage.getProfile();
+    pf('pfHeight').value = p.height;
+    pf('pfAge').value = p.age;
+    pf('pfSex').value = p.sex;
+    pf('pfActivity').value = p.activity;
+    pf('pfGoal').value = p.goal;
+    updateProfilePreview();
+  }
+  function readProfileForm() {
+    return {
+      height: parseFloat(pf('pfHeight').value) || 169,
+      age: parseInt(pf('pfAge').value) || 20,
+      sex: pf('pfSex').value,
+      activity: pf('pfActivity').value,
+      goal: pf('pfGoal').value,
+    };
+  }
+  function updateProfilePreview() {
+    const form = readProfileForm();
+    const weight = Storage.getEffectiveWeight();
+    const p = { ...form, weight };
+    pf('pfBmr').textContent = Calories.bmr(p) + ' kcal';
+    pf('pfTdee').textContent = Calories.tdee(p) + ' kcal';
+    pf('pfTarget').textContent = Calories.calorieTarget(p) + ' kcal';
+    pf('pfWater').textContent = Calories.waterTarget(weight) + ' ml';
+  }
+  pf('profileBtn').addEventListener('click', () => {
+    loadProfileForm();
+    pf('profileModal').hidden = false;
+  });
+  ['pfHeight','pfAge','pfSex','pfActivity','pfGoal'].forEach(id => {
+    pf(id).addEventListener('input', updateProfilePreview);
+    pf(id).addEventListener('change', updateProfilePreview);
+  });
+  pf('saveProfileBtn').addEventListener('click', () => {
+    Storage.setProfile(readProfileForm());
+    pf('profileModal').hidden = true;
+    FoodLog.render();
+    WaterTab.render();
+  });
+
   // ----- Init each module -----
   FoodLog.init();
   WeightTab.init();
