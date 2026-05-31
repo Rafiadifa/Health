@@ -1,80 +1,66 @@
 # Daily Log
 
-A personal health tracker — calorie estimation (no AI, just a formula), weight + body data trends, water intake. Runs entirely in your browser. No backend, no signup.
+A personal health tracker — calorie estimation (no AI, just a formula), weight + body trends, water, fasting window, and daily reflections. Runs entirely in your browser. No backend, no signup. Installable as an app (PWA).
 
-## What it does
+## Two tabs
 
-- **Food tab** — log meals with category, portion, oiliness, sauciness, sweetness, cooking method, and extra protein. The formula estimates calories from those inputs. Optional photo per entry.
-- **Weight tab** — daily weight, body fat %, waist, sleep, energy, exercise minutes, steps. Week/month/all-time trend chart.
-- **Water tab** — quick-add buttons (150 / 250 / 500 / 750 ml) + custom amount, daily goal with progress bar, 7-day chart.
-- **Export / Import** (↗ ↙ in header) — back up your data to a JSON file, restore it later, or move it between devices manually.
+### Day
+Everything about a single day, anchored to a calendar you can scrub through:
+- **Weekly summary** — rolling 7-day averages (calories, net, water-goal days, training days, weight change).
+- **Net calories** — Eaten − Burned = Net (enter your watch's burn; net turns green/red).
+- **Calorie budget** — target from your profile vs what you've eaten, with remaining.
+- **Burned + sport** — log your watch burn and activity level (trained days get a dot on the calendar).
+- **Fasting window** — set an eating window (e.g. 06:30–14:30); shows live "eating / fasting" status.
+- **Water** — progress ring, quick-add buttons, custom amount, goal auto-set from body weight.
+- **Food log** — multi-item meals (savory / sweet / drink / manual calorie entry). Tap a meal to edit. Star a meal to save it as a **favorite** for one-tap re-logging.
+- **Reflection** — a free-text note per day.
+
+### Weight
+- Log weight, body fat %, waist, sleep, energy, exercise minutes, steps.
+- Trend chart with a **7-day moving-average** line (smooths daily noise).
+- Switch the chart between **Weight / Waist / Body fat**.
 
 ## File structure
 
 ```
 /
-├── index.html          ← entry point, contains HTML structure for all 3 tabs
+├── index.html          ← structure for both tabs + modals
+├── manifest.json       ← PWA manifest (installable app)
+├── sw.js               ← service worker (offline support)
 ├── css/
-│   └── styles.css      ← all styling (one file, scoped by classes)
-├── js/
-│   ├── storage.js      ← localStorage wrapper + photo compression + import/export
-│   ├── calories.js     ← the calorie formula (tweak numbers here)
-│   ├── food-log.js     ← food tab logic
-│   ├── weight.js       ← weight tab + chart
-│   ├── water.js        ← water tab + chart
-│   └── app.js          ← tab switching, modals, ties everything together
-└── README.md
+│   └── styles.css      ← all styling
+├── icons/              ← app icons (PWA + favicon)
+└── js/
+    ├── storage.js      ← localStorage wrapper, profile, favorites, import/export
+    ├── calories.js     ← calorie formula + BMR/TDEE/water-target math
+    ├── day.js          ← the Day tab (calendar, food, water, fasting, favorites, reflection)
+    ├── weight.js       ← the Weight tab (charts + moving average)
+    └── app.js          ← tabs, modals, profile, backup nudge, service-worker registration
 ```
 
-Only external dependency is **Chart.js** (loaded from a CDN, no install needed).
+Only external dependency is **Chart.js** (from a CDN). Everything else is vanilla JS.
 
-## How to deploy to GitHub Pages
+## Deploy to GitHub Pages
 
-1. **Create a repo on GitHub.** Name it anything — e.g. `daily-log`. Make it Public.
-2. **Upload these files** (drag & drop in the GitHub web UI works fine, or `git push` if you prefer). Keep the folder structure intact.
-3. **Enable Pages**: Repo → *Settings* → *Pages* → *Source* = "Deploy from a branch" → Branch = `main` (or `master`), folder = `/ (root)`. Save.
-4. Wait ~30 seconds. Your app is now at `https://<your-username>.github.io/<repo-name>/`.
-5. On your phone: open that URL in your browser → **Share** → **Add to Home Screen**. It now behaves like an app.
+1. Create a public repo, upload these files (keep the folder structure — drop the *files inside* `css/`, `js/`, `icons/`, not the folders).
+2. Settings → Pages → Deploy from branch → `main` → `/ (root)`.
+3. Open `https://<your-username>.github.io/<repo>/`.
+4. On your phone: open that URL → Share → **Add to Home Screen**. It installs as a real app (custom icon, fullscreen, works offline).
 
-## About sync between phone and computer
+## Profile & targets (open the ⚙ button)
 
-Your data lives in your browser's `localStorage`, which means it's stored **per device per browser**. That is a real limitation — there's no automatic sync. Two ways to handle it:
+Set height, age, sex, activity level, goal, and your eating window. Targets are computed with the Mifflin-St Jeor equation; your **weight is pulled automatically from your latest weight log**, so targets update as your weight changes.
 
-### Option A: manual sync (built in)
-Use the **export (↗)** and **import (↙)** buttons in the header. Export on your computer → email/cloud-drive the JSON file to yourself → import on your phone (or vice versa). When importing, you can choose **merge** (combines both) or **replace**.
+> First run: confirm **sex** and **age** — BMR depends on them, and the defaults (male / 20) may not match you.
 
-This is fine if you mostly use one device and only sync occasionally.
+## Sync & backup
 
-### Option B: real auto-sync via Firebase (optional upgrade)
-If manual sync gets annoying, you can switch to Firebase Firestore (free, auto-syncs across devices). The code is structured so you only need to replace `js/storage.js` — the rest of the app stays untouched. Setup is ~20 minutes:
-1. Create a Firebase project at console.firebase.google.com
-2. Enable Firestore + Anonymous Auth
-3. Get your config keys
-4. Swap `storage.js` for a Firebase version
+Data lives in your browser's `localStorage` (per device). Use **Export (↗)** to save a JSON backup and **Import (↙)** to restore or move data between devices (merge or replace). A gentle banner reminds you if it's been over a week since your last backup. Clearing browser data wipes logs, so export occasionally.
 
-Ask me to help with this if/when you decide you want it.
+## Caching
+
+Asset URLs carry `?v=7`. If you change a file, bump that number (and the `CACHE` name in `sw.js`) so browsers fetch fresh copies.
 
 ## Tweaking the calorie formula
 
-Open `js/calories.js`. The `BASE` object has base kcal per food category. If your portions of, say, rice are bigger than mine, bump `rice: 220` up to `260` or whatever fits.
-
-The formula:
-```
-cal = (base × portion + protein_bonus)
-      × (1 + 0.08 × oil)
-      × (1 + 0.05 × sauce)
-      × (1 + 0.10 × sweet)
-      × cooking_multiplier
-```
-
-Tweak any of those coefficients to taste. The values shown above are reasonable starting points.
-
-## Notes on storage limits
-
-- Each browser gives you roughly **5–10 MB** of localStorage. Photos are auto-compressed to ~50–150 KB each, so you can store hundreds of meals with photos before hitting the limit.
-- If you ever do hit the limit, the app will warn you. Export your data, then delete some older photo-heavy entries.
-- Clearing browser data / cache **will wipe your logs**. Export regularly as a backup.
-
-## Browser support
-
-Anything modern: Chrome, Safari, Firefox, Edge — desktop and mobile. The "Add to Home Screen" trick on iOS / Android gives you an app icon without needing an app store.
+`js/calories.js` holds the base-kcal tables (`SAVORY_BASE`, `SWEET_BASE`, `DRINK_BASE`) and modifier maps. Adjust the numbers as you learn your portions.
