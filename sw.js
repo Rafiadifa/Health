@@ -1,9 +1,9 @@
 /* Service worker — network-first so online users always get fresh files,
    with a cached fallback for offline. Bump CACHE when you change assets. */
-const CACHE = 'daily-log-v7';
+const CACHE = 'daily-log-v8';
 const ASSETS = [
   './', './index.html',
-  './css/styles.css?v=7',
+  './css/styles.css?v=8',
   './js/storage.js?v=7', './js/calories.js?v=7', './js/day.js?v=7',
   './js/weight.js?v=7', './js/app.js?v=7',
   './manifest.json',
