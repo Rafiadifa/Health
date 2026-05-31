@@ -972,3 +972,255 @@ input[type="range"]::-moz-range-thumb {
   .net-value { font-size: 22px; }
   .net-divider { font-size: 14px; }
 }
+
+/* ====================================================
+   v6 additions: meal items, budget bar, profile, notes
+==================================================== */
+
+/* ---------- Budget bar ---------- */
+.budget { margin-bottom: 14px; padding: 0 2px; }
+.budget-bar {
+  height: 8px;
+  background: var(--bg-soft);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success) 0%, #8fa87e 100%);
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.budget-fill.over { background: linear-gradient(90deg, var(--accent) 0%, var(--danger) 100%); }
+.budget-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.budget-left.over { color: var(--danger); font-weight: 500; }
+
+/* ---------- Items header + add button ---------- */
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0 10px;
+}
+.items-header > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mini-btn {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mini-btn:hover { background: var(--accent); color: #fff; }
+.mini-btn:active { transform: scale(0.97); }
+
+/* ---------- Item card ---------- */
+.item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.item-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.kind-tabs {
+  display: flex;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex: 1;
+}
+.kind-tabs button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 6px 4px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.kind-tabs button.active {
+  background: var(--bg-card);
+  color: var(--accent-deep);
+  box-shadow: var(--shadow-sm);
+}
+.item-remove {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.item-remove:hover { color: var(--danger); background: var(--bg-soft); }
+
+.item-name {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.item-name:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ifield { display: flex; flex-direction: column; gap: 3px; }
+.ifield.wide { grid-column: 1 / -1; }
+.ifield > span {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ifield select,
+.ifield input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 9px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink);
+}
+.ifield select:focus,
+.ifield input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.item-cal {
+  text-align: right;
+  margin-top: 8px;
+}
+.item-cal span {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Meal total ---------- */
+.meal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  margin: 6px 0 16px;
+}
+.meal-total span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.meal-total strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--accent-deep);
+}
+
+/* ---------- Editable log item ---------- */
+.log-item.editable { cursor: pointer; }
+.meta-breakdown { color: var(--ink-soft); }
+
+/* ---------- Daily reflection note ---------- */
+.day-note {
+  width: 100%;
+  min-height: 80px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  resize: vertical;
+  line-height: 1.5;
+}
+.day-note:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.day-note::placeholder { color: var(--ink-faint); font-style: italic; }
+
+/* ---------- Profile modal ---------- */
+.hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+}
+.target-preview {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.target-preview > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.target-preview > div:last-child { border-bottom: none; }
+.target-preview > div span {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.target-preview > div strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.target-preview > div.highlight {
+  background: var(--accent-soft);
+}
+.target-preview > div.highlight span { color: var(--accent-deep); font-weight: 500; }
+.target-preview > div.highlight strong { color: var(--accent-deep); }
