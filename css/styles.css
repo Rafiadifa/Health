@@ -102,19 +102,23 @@ body::before {
 
 /* ---------- Tabs ---------- */
 .tab-nav {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 4px;
-  padding: 0 var(--pad);
-  margin-bottom: 6px;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--pad));
+  margin: 0 auto 10px;
+  padding: 4px;
+  background: var(--bg-soft);
+  border-radius: 18px;
   position: relative;
   z-index: 1;
 }
 .tab-btn {
+  min-width: 128px;
   background: transparent;
   border: 1px solid transparent;
-  padding: 12px 10px;
-  border-radius: var(--radius);
+  padding: 11px 10px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
