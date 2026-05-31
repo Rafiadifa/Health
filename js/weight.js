@@ -6,6 +6,7 @@
 const WeightTab = (() => {
   let chartInstance = null;
   let currentRange = 'week';
+  let currentMetric = 'weight'; // weight | waist | bodyFat
   const $ = (id) => document.getElementById(id);
 
   function init() {
@@ -17,6 +18,15 @@ const WeightTab = (() => {
         document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentRange = btn.dataset.range;
+        renderChart();
+      });
+    });
+
+    document.querySelectorAll('.metric-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMetric = btn.dataset.metric;
         renderChart();
       });
     });
@@ -93,87 +103,111 @@ const WeightTab = (() => {
   function getRangeData() {
     const weights = Storage.getWeights();
     if (weights.length === 0) return [];
-
     if (currentRange === 'all') return weights;
-
     const days = currentRange === 'week' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = formatDate(cutoff);
-    return weights.filter(e => e.date >= cutoffStr);
+    return weights.filter(e => e.date >= formatDate(cutoff));
+  }
+
+  const METRIC_CFG = {
+    weight:  { field: 'weight',  label: 'Weight', unit: 'kg', decimals: 1, avg: true },
+    waist:   { field: 'waist',   label: 'Waist',  unit: 'cm', decimals: 1, avg: false },
+    bodyFat: { field: 'bodyFat', label: 'Body fat', unit: '%', decimals: 1, avg: false },
+  };
+
+  // Trailing N-point moving average (over the points present in `arr`)
+  function movingAverage(values, window = 7) {
+    return values.map((_, i) => {
+      const start = Math.max(0, i - window + 1);
+      const slice = values.slice(start, i + 1).filter(v => v != null);
+      if (!slice.length) return null;
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
   }
 
   function renderChart() {
-    const data = getRangeData();
+    const cfg = METRIC_CFG[currentMetric];
+    const all = getRangeData().filter(e => e[cfg.field] != null);
     const ctx = $('weightChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
-    if (data.length === 0) {
+    if (all.length === 0) {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.font = 'italic 14px Fraunces, serif';
       ctx.fillStyle = '#9a9183';
       ctx.textAlign = 'center';
-      ctx.fillText('No data yet — log your weight to see the trend.',
+      ctx.fillText(`No ${cfg.label.toLowerCase()} data in this range yet.`,
         ctx.canvas.width / 2, ctx.canvas.height / 2);
       return;
+    }
+
+    const values = all.map(e => e[cfg.field]);
+    const datasets = [{
+      label: cfg.label,
+      data: values,
+      borderColor: '#b85d3e',
+      backgroundColor: 'rgba(184, 93, 62, 0.08)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#b85d3e',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      order: 2,
+    }];
+
+    // Add a 7-day moving-average trend line for weight (smooths the noise)
+    if (cfg.avg && values.length >= 3) {
+      datasets.push({
+        label: '7-day avg',
+        data: movingAverage(values, 7),
+        borderColor: '#6b8c5a',
+        borderWidth: 2,
+        borderDash: [5, 4],
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        order: 1,
+      });
     }
 
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: data.map(e => {
-          const d = new Date(e.date + 'T00:00:00');
-          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        }),
-        datasets: [{
-          label: 'Weight (kg)',
-          data: data.map(e => e.weight),
-          borderColor: '#b85d3e',
-          backgroundColor: 'rgba(184, 93, 62, 0.08)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#b85d3e',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-        }],
+        labels: all.map(e => new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+        datasets,
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: cfg.avg && values.length >= 3,
+            position: 'top',
+            align: 'end',
+            labels: { boxWidth: 18, font: { family: 'Geist', size: 11 }, color: '#6b6358', usePointStyle: true },
+          },
           tooltip: {
             backgroundColor: '#2a2520',
             titleFont: { family: 'Geist', size: 12 },
             bodyFont: { family: 'JetBrains Mono', size: 13 },
             padding: 10,
-            callbacks: {
-              label: (ctx) => `${ctx.parsed.y.toFixed(1)} kg`,
-            },
+            callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(cfg.decimals)} ${cfg.unit}` },
           },
         },
         scales: {
           y: {
             beginAtZero: false,
             grid: { color: 'rgba(217, 210, 196, 0.5)' },
-            ticks: {
-              font: { family: 'JetBrains Mono', size: 11 },
-              color: '#6b6358',
-              callback: (v) => v + ' kg',
-            },
+            ticks: { font: { family: 'JetBrains Mono', size: 11 }, color: '#6b6358', callback: (v) => v + ' ' + cfg.unit },
           },
           x: {
             grid: { display: false },
-            ticks: {
-              font: { family: 'JetBrains Mono', size: 10 },
-              color: '#9a9183',
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 8,
-            },
+            ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#9a9183', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
           },
         },
       },
