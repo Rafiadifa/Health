@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#f5f1e8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Daily Log" />
   <title>Daily Log</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/favicon-64.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/styles.css?v=7" />
 </head>
 <body>
   <header class="app-header">
@@ -24,33 +30,53 @@
     </div>
   </header>
 
-  <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="food"><span class="tab-icon">🍚</span><span class="tab-label">Food</span></button>
+  <div id="backupBanner" class="backup-banner" hidden>
+    <span id="backupText">Back up your data so you don't lose it.</span>
+    <span class="backup-actions">
+      <button id="backupNowBtn" class="text-btn">Export now ↗</button>
+      <button id="backupDismiss" class="icon-btn small">✕</button>
+    </span>
+  </div>
+
+  <nav class="tab-nav two">
+    <button class="tab-btn active" data-tab="day"><span class="tab-icon">📅</span><span class="tab-label">Day</span></button>
     <button class="tab-btn" data-tab="weight"><span class="tab-icon">⚖</span><span class="tab-label">Weight</span></button>
-    <button class="tab-btn" data-tab="water"><span class="tab-icon">💧</span><span class="tab-label">Water</span></button>
   </nav>
 
   <main class="app-main">
-    <!-- ============ FOOD TAB ============ -->
-    <section id="tab-food" class="tab-panel active">
+    <!-- ============ DAY TAB ============ -->
+    <section id="tab-day" class="tab-panel active">
+      <!-- Last 7 days -->
+      <div class="week-summary">
+        <div class="week-title">Last 7 days</div>
+        <div class="week-grid">
+          <div class="week-stat"><span class="week-val" id="weekAvgCal">—</span><span class="week-lbl">avg kcal/day</span></div>
+          <div class="week-stat"><span class="week-val" id="weekNet">—</span><span class="week-lbl">avg net</span></div>
+          <div class="week-stat"><span class="week-val" id="weekWater">—</span><span class="week-lbl">water goal</span></div>
+          <div class="week-stat"><span class="week-val" id="weekTraining">—</span><span class="week-lbl">training days</span></div>
+          <div class="week-stat"><span class="week-val" id="weekWeight">—</span><span class="week-lbl">weight Δ kg</span></div>
+        </div>
+      </div>
+
       <div class="cal-layout">
         <div class="cal-side">
           <div class="cal-header">
-            <button class="day-nav" id="foodCalPrev">‹</button>
-            <h2 class="cal-month" id="foodCalMonth">—</h2>
-            <button class="day-nav" id="foodCalNext">›</button>
+            <button class="day-nav" id="dayCalPrev">‹</button>
+            <h2 class="cal-month" id="dayCalMonth">—</h2>
+            <button class="day-nav" id="dayCalNext">›</button>
           </div>
           <div class="cal-weekdays"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-          <div class="cal-grid" id="foodCalGrid"></div>
+          <div class="cal-grid" id="dayCalGrid"></div>
           <div class="cal-legend">
             <span class="legend-item"><span class="legend-dot dot-low"></span>&lt;1500</span>
             <span class="legend-item"><span class="legend-dot dot-mid"></span>1500–2500</span>
             <span class="legend-item"><span class="legend-dot dot-high"></span>&gt;2500</span>
+            <span class="legend-item"><span class="activity-dot static"></span>trained</span>
           </div>
         </div>
 
         <div class="day-side">
-          <h2 class="day-title" id="foodDateLabel">Today</h2>
+          <h2 class="day-title" id="dayDateLabel">Today</h2>
 
           <div class="net-card">
             <div class="net-stat"><span class="net-label">Eaten</span><span class="net-value" id="totalCalories">0</span><span class="net-unit">in</span></div>
@@ -62,10 +88,7 @@
 
           <div class="budget">
             <div class="budget-bar"><div class="budget-fill" id="budgetFill"></div></div>
-            <div class="budget-labels">
-              <span id="budgetTarget">Target —</span>
-              <span class="budget-left" id="budgetLeft">—</span>
-            </div>
+            <div class="budget-labels"><span id="budgetTarget">Target —</span><span class="budget-left" id="budgetLeft">—</span></div>
           </div>
 
           <div class="day-controls">
@@ -84,12 +107,44 @@
             </label>
           </div>
 
+          <!-- Fasting window -->
+          <div id="fastingWidget" class="fasting-widget"></div>
+
+          <!-- Water -->
+          <div class="section-title"><h3>Water</h3></div>
+          <div class="water-module">
+            <div class="water-ring-wrap">
+              <svg class="water-ring" viewBox="0 0 100 100">
+                <circle class="ring-track" cx="50" cy="50" r="42"></circle>
+                <circle id="waterRingProgress" class="ring-progress" cx="50" cy="50" r="42"></circle>
+              </svg>
+              <div class="water-ring-center"><span id="waterRingMl">0</span><small id="waterRingGoal">of 2400</small></div>
+            </div>
+            <div class="water-controls">
+              <div class="water-quick-grid">
+                <button class="water-quick" data-amount="150">+150<small>cup</small></button>
+                <button class="water-quick" data-amount="250">+250<small>glass</small></button>
+                <button class="water-quick" data-amount="500">+500<small>bottle</small></button>
+                <button class="water-quick" data-amount="750">+750<small>big</small></button>
+              </div>
+              <div class="custom-add">
+                <input type="number" id="customWater" placeholder="custom ml" step="50" />
+                <button id="addCustomWaterBtn" class="primary-btn">Add</button>
+              </div>
+              <div class="water-goal-line"><button id="editGoalBtn" class="text-btn">edit goal</button></div>
+            </div>
+          </div>
+          <div id="waterLog" class="water-log"></div>
+
+          <!-- Food -->
           <div class="section-title">
-            <h3>Log</h3>
+            <h3>Food</h3>
             <button id="addFoodBtn" class="primary-btn">+ Add food</button>
           </div>
+          <div id="favoritesRow" class="favorites-row empty"></div>
           <div id="foodList" class="log-list"></div>
 
+          <!-- Reflection -->
           <div class="section-title"><h3>Reflection</h3></div>
           <textarea id="dayNote" class="day-note" placeholder="How did today go? Energy, cravings, mood, training, sleep…"></textarea>
         </div>
@@ -103,27 +158,20 @@
             <button class="close-btn" data-close="foodModal">✕</button>
           </div>
           <div class="modal-body">
-            <label class="field">
-              <span>Meal name (optional)</span>
-              <input type="text" id="mealName" placeholder="e.g. Lunch — blank = auto-name" />
-            </label>
+            <div class="field-row">
+              <label class="field grow"><span>Meal name (optional)</span><input type="text" id="mealName" placeholder="e.g. Lunch — blank = auto" /></label>
+              <label class="field"><span>Time</span><input type="time" id="mealTime" /></label>
+            </div>
 
             <div class="items-header">
               <span>What did you eat?</span>
               <button type="button" id="addItemBtn" class="mini-btn">+ Add item</button>
             </div>
             <div id="itemsContainer"></div>
-
             <div class="meal-total"><span>Meal total</span><strong id="mealTotal">0 kcal</strong></div>
 
-            <label class="field">
-              <span>Photo (optional)</span>
-              <input type="file" id="foodPhoto" accept="image/*" capture="environment" />
-            </label>
-            <label class="field">
-              <span>Notes (optional)</span>
-              <textarea id="foodNotes" rows="2" placeholder="anything to remember about this meal"></textarea>
-            </label>
+            <label class="field"><span>Photo (optional)</span><input type="file" id="foodPhoto" accept="image/*" capture="environment" /></label>
+            <label class="field"><span>Notes (optional)</span><textarea id="foodNotes" rows="2" placeholder="anything to remember about this meal"></textarea></label>
           </div>
           <div class="modal-footer">
             <button class="secondary-btn" data-close="foodModal">Cancel</button>
@@ -152,6 +200,12 @@
           <button class="range-btn" data-range="month">Month</button>
           <button class="range-btn" data-range="all">All</button>
         </div>
+      </div>
+
+      <div class="range-toggle metric-toggle">
+        <button class="metric-btn active" data-metric="weight">Weight</button>
+        <button class="metric-btn" data-metric="waist">Waist</button>
+        <button class="metric-btn" data-metric="bodyFat">Body fat</button>
       </div>
 
       <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
@@ -183,53 +237,6 @@
         </div>
       </div>
     </section>
-
-    <!-- ============ WATER TAB ============ -->
-    <section id="tab-water" class="tab-panel">
-      <div class="cal-layout">
-        <div class="cal-side">
-          <div class="cal-header">
-            <button class="day-nav" id="waterCalPrev">‹</button>
-            <h2 class="cal-month" id="waterCalMonth">—</h2>
-            <button class="day-nav" id="waterCalNext">›</button>
-          </div>
-          <div class="cal-weekdays"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-          <div class="cal-grid" id="waterCalGrid"></div>
-          <div class="cal-legend">
-            <span class="legend-item"><span class="legend-dot dot-water-low"></span>&lt;1500ml</span>
-            <span class="legend-item"><span class="legend-dot dot-water-mid"></span>1500–2500</span>
-            <span class="legend-item"><span class="legend-dot dot-water-high"></span>&gt;goal</span>
-          </div>
-        </div>
-
-        <div class="day-side">
-          <h2 class="day-title" id="waterDateLabel">Today</h2>
-
-          <div class="summary-card water-card">
-            <div class="summary-stat"><span class="stat-label">Total</span><span class="stat-value" id="waterToday">0</span><span class="stat-unit">ml</span></div>
-            <div class="water-goal-row"><span>Goal: <strong id="waterGoal">2500</strong> ml</span><button id="editGoalBtn" class="text-btn">edit</button></div>
-            <div class="water-progress"><div class="water-progress-fill" id="waterFill"></div></div>
-            <div class="water-percent" id="waterPercent">0%</div>
-          </div>
-
-          <div class="section-title"><h3>Quick add</h3></div>
-          <div class="quick-add-grid">
-            <button class="quick-btn" data-amount="150">+150ml<small>cup</small></button>
-            <button class="quick-btn" data-amount="250">+250ml<small>glass</small></button>
-            <button class="quick-btn" data-amount="500">+500ml<small>bottle</small></button>
-            <button class="quick-btn" data-amount="750">+750ml<small>big bottle</small></button>
-          </div>
-
-          <div class="custom-add">
-            <input type="number" id="customWater" placeholder="custom ml" step="50" />
-            <button id="addCustomWaterBtn" class="primary-btn">Add</button>
-          </div>
-
-          <div class="section-title"><h3>Day's log</h3></div>
-          <div id="waterList" class="log-list"></div>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Profile Modal -->
@@ -240,7 +247,7 @@
         <button class="close-btn" data-close="profileModal">✕</button>
       </div>
       <div class="modal-body">
-        <p class="hint">These set your daily calorie &amp; water targets. Your weight is pulled from your latest weight log automatically — update it on the Weight tab.</p>
+        <p class="hint">Sets your daily calorie &amp; water targets. Weight comes from your latest weight log — update it on the Weight tab.</p>
         <label class="field"><span>Height (cm)</span><input type="number" id="pfHeight" step="1" placeholder="169" /></label>
         <label class="field"><span>Age</span><input type="number" id="pfAge" step="1" placeholder="20" /></label>
         <label class="field"><span>Sex <em>(for the BMR formula)</em></span>
@@ -263,6 +270,16 @@
           </select>
         </label>
 
+        <div class="divider-label">Fasting / eating window</div>
+        <label class="field checkbox-field">
+          <input type="checkbox" id="pfFastEnabled" />
+          <span>Track an eating window</span>
+        </label>
+        <div class="field-row">
+          <label class="field grow"><span>Window opens</span><input type="time" id="pfFastStart" value="06:30" /></label>
+          <label class="field grow"><span>Window closes</span><input type="time" id="pfFastEnd" value="14:30" /></label>
+        </div>
+
         <div class="target-preview">
           <div><span>BMR (at rest)</span><strong id="pfBmr">—</strong></div>
           <div><span>Maintenance (TDEE)</span><strong id="pfTdee">—</strong></div>
@@ -281,11 +298,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <!-- App modules (order matters) -->
-  <script src="js/storage.js?v=6"></script>
-  <script src="js/calories.js?v=6"></script>
-  <script src="js/food-log.js?v=6"></script>
-  <script src="js/weight.js?v=6"></script>
-  <script src="js/water.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/storage.js?v=7"></script>
+  <script src="js/calories.js?v=7"></script>
+  <script src="js/day.js?v=7"></script>
+  <script src="js/weight.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>
